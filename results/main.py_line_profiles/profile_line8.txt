@@ -1,0 +1,101 @@
+Timer unit: 1e-06 s
+
+Total time: 25.3783 s
+File: src/main.py
+Function: main at line 66
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    66                                           @profile
+    67                                           def main():
+    68                                           
+    69                                               # Grab command line args
+    70         1       1608.0   1608.0      0.0      args = build_argparser().parse_args()
+    71         1          9.0      9.0      0.0      previewFlags = args.previewFlags
+    72                                               
+    73         1         10.0     10.0      0.0      logger = logging.getLogger()
+    74         1          9.0      9.0      0.0      inputFilePath = args.input
+    75         1          8.0      8.0      0.0      inputFeeder = None
+    76         1          9.0      9.0      0.0      if inputFilePath.lower()=="cam":
+    77                                                       inputFeeder = InputFeeder("cam")
+    78                                               else:
+    79         1         20.0     20.0      0.0          if not os.path.isfile(inputFilePath):
+    80                                                       logger.error("Unable to find specified video file")
+    81                                                       exit(1)
+    82         1         12.0     12.0      0.0          inputFeeder = InputFeeder("video",inputFilePath)
+    83                                               
+    84         1          8.0      8.0      0.0      modelPathDict = {'FaceDetectionModel':args.facedetectionmodel, 'FacialLandmarksDetectionModel':args.faciallandmarkmodel, 
+    85         1          8.0      8.0      0.0      'GazeEstimationModel':args.gazeestimationmodel, 'HeadPoseEstimationModel':args.headposemodel}
+    86                                               
+    87         5         41.0      8.2      0.0      for fileNameKey in modelPathDict.keys():
+    88         4         63.0     15.8      0.0          if not os.path.isfile(modelPathDict[fileNameKey]):
+    89                                                       logger.error("Unable to find specified "+fileNameKey+" xml file")
+    90                                                       exit(1)
+    91                                                       
+    92         1         20.0     20.0      0.0      fdm = FaceDetectionModel(modelPathDict['FaceDetectionModel'], args.device, args.cpu_extension)
+    93         1         17.0     17.0      0.0      fldm = FacialLandmarksDetectionModel(modelPathDict['FacialLandmarksDetectionModel'], args.device, args.cpu_extension)
+    94         1         15.0     15.0      0.0      gem = GazeEstimationModel(modelPathDict['GazeEstimationModel'], args.device, args.cpu_extension)
+    95         1         17.0     17.0      0.0      hpem = HeadPoseEstimationModel(modelPathDict['HeadPoseEstimationModel'], args.device, args.cpu_extension)
+    96                                               
+    97         1         13.0     13.0      0.0      mc = MouseController('medium','fast')
+    98                                               
+    99         1      35584.0  35584.0      0.1      inputFeeder.load_data()
+   100         1     362031.0 362031.0      1.4      fdm.load_model()
+   101         1      79018.0  79018.0      0.3      fldm.load_model()
+   102         1     145894.0 145894.0      0.6      hpem.load_model()
+   103         1     144940.0 144940.0      0.6      gem.load_model()
+   104                                               
+   105         1         10.0     10.0      0.0      frame_count = 0
+   106        60    2886247.0  48104.1     11.4      for ret, frame in inputFeeder.next_batch():
+   107        60        727.0     12.1      0.0          if not ret:
+   108         1         15.0     15.0      0.0              break
+   109        59        520.0      8.8      0.0          frame_count+=1
+   110        59        559.0      9.5      0.0          if frame_count%5==0:
+   111        11      67486.0   6135.1      0.3              cv2.imshow('video',cv2.resize(frame,(500,500)))
+   112                                               
+   113        59    3640157.0  61697.6     14.3          key = cv2.waitKey(60)
+   114        59    3511982.0  59525.1     13.8          croppedFace, face_coords = fdm.predict(frame.copy(), args.prob_threshold)
+   115        59       1047.0     17.7      0.0          if type(croppedFace)==int:
+   116                                                       logger.error("Unable to detect the face.")
+   117                                                       if key==27:
+   118                                                           break
+   119                                                       continue
+   120                                                   
+   121        59     230145.0   3900.8      0.9          hp_out = hpem.predict(croppedFace.copy())
+   122                                                   
+   123        59     158358.0   2684.0      0.6          left_eye, right_eye, eye_coords = fldm.predict(croppedFace.copy())
+   124                                                   
+   125        59     198070.0   3357.1      0.8          new_mouse_coord, gaze_vector = gem.predict(left_eye, right_eye, hp_out)
+   126                                                   
+   127        59        758.0     12.8      0.0          if (not len(previewFlags)==0):
+   128                                                       preview_frame = frame.copy()
+   129                                                       if 'fd' in previewFlags:
+   130                                                           #cv2.rectangle(preview_frame, (face_coords[0], face_coords[1]), (face_coords[2], face_coords[3]), (255,0,0), 3)
+   131                                                           preview_frame = croppedFace
+   132                                                       if 'fld' in previewFlags:
+   133                                                           cv2.rectangle(croppedFace, (eye_coords[0][0]-10, eye_coords[0][1]-10), (eye_coords[0][2]+10, eye_coords[0][3]+10), (0,255,0), 3)
+   134                                                           cv2.rectangle(croppedFace, (eye_coords[1][0]-10, eye_coords[1][1]-10), (eye_coords[1][2]+10, eye_coords[1][3]+10), (0,255,0), 3)
+   135                                                           #preview_frame[face_coords[1]:face_coords[3], face_coords[0]:face_coords[2]] = croppedFace
+   136                                                           
+   137                                                       if 'hp' in previewFlags:
+   138                                                           cv2.putText(preview_frame, "Pose Angles: yaw:{:.2f} | pitch:{:.2f} | roll:{:.2f}".format(hp_out[0],hp_out[1],hp_out[2]), (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.25, (0, 255, 0), 1)
+   139                                                       if 'ge' in previewFlags:
+   140                                                           x, y, w = int(gaze_vector[0]*12), int(gaze_vector[1]*12), 160
+   141                                                           le =cv2.line(left_eye.copy(), (x-w, y-w), (x+w, y+w), (255,0,255), 2)
+   142                                                           cv2.line(le, (x-w, y+w), (x+w, y-w), (255,0,255), 2)
+   143                                                           re = cv2.line(right_eye.copy(), (x-w, y-w), (x+w, y+w), (255,0,255), 2)
+   144                                                           cv2.line(re, (x-w, y+w), (x+w, y-w), (255,0,255), 2)
+   145                                                           croppedFace[eye_coords[0][1]:eye_coords[0][3],eye_coords[0][0]:eye_coords[0][2]] = le
+   146                                                           croppedFace[eye_coords[1][1]:eye_coords[1][3],eye_coords[1][0]:eye_coords[1][2]] = re
+   147                                                           #preview_frame[face_coords[1]:face_coords[3], face_coords[0]:face_coords[2]] = croppedFace
+   148                                                           
+   149                                                       cv2.imshow("visualization",cv2.resize(preview_frame,(500,500)))
+   150                                                   
+   151        59        827.0     14.0      0.0          if frame_count%5==0:
+   152        11   13909230.0 1264475.5     54.8              mc.move(new_mouse_coord[0],new_mouse_coord[1])    
+   153        59       1176.0     19.9      0.0          if key==27:
+   154                                                           break
+   155         1        223.0    223.0      0.0      logger.error("VideoStream ended...")
+   156         1        305.0    305.0      0.0      cv2.destroyAllWindows()
+   157         1       1119.0   1119.0      0.0      inputFeeder.close() 
+
