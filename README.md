@@ -36,7 +36,7 @@ The repo also contains all dependencies required to run this project end to end 
 
         source {INSTALLED_OPENVINO_DIR}/bin/setupvars.sh 
 
--- 3.4 To ensure the correct dependencies are installed (if you aren't sure) please run the below
+-- 3.4 To ensure the correct dependencies are installed (if you aren't sure) please run the below - optional
 
 	C:/<PATH_to_Environment>/JashaBCPC$ pip install -r requirements.txt
 
@@ -67,13 +67,14 @@ python3 opt/intel/openvino/deployment_tools/tools/model_downloader/downloader.py
 
 ## Demo
 The demo of this application is easy if you have followed the correct steps above and have all the require files located in the righ folder structure. 
+
 The main.py script controls the feeding of pre- and post- processed data through the different models initially and they daisey-chain after this.
 
 Below is the demo command line argument to see the demo in action. All model precisions are initially set to FP32 as if the entire app is being run off the CPU only. These can of course be altered as the main directory file has a number of executable .sh scripts which run through the different precision levels INT8-FP32 and of course this can be altered depending on the virtualised or real hardware avaliability, where both INT8 or FP16 can be used (if avaliable with each model used by the app)- a note here is that INT8 models will not run on Rasberry Pi there is a software hardware conflict which is a current an known issue - FP16 & FP32 are (a little slow) but fine.
 
 Below is the actual bash script to run from the main directory, as said previously FPs are all set to 32 for this initial run.  
 
-python3 src/main.py -f src/models/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml -fl src/models/intel/landmarks-regression-retail-0009/FP32/landmarks-regression-retail-0009.xml -hp src/models/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml -g src/models/intel/gaze-estimation-adas-0002/FP32/gaze-estimation-adas-0002.xml -i src/bin/demo.mp4 -it video -d CPU
+
 
 Reminder, for ease of execution you need only to run the "party_starter32.sh" file in the app root along with the other precisions are already to execute (or just copy and paste the above if you wish mix and match).
 
@@ -81,18 +82,15 @@ Reminder, for ease of execution you need only to run the "party_starter32.sh" fi
 
 Command Line Arguments and Requirements as noted above 
 
-CLI |Type        |Description
-Args|------------| ---------------------------------------------------|
--f  | Mandatory	 | Path to .xml file of Face Detection model.
--l  | Mandatory	 | Path to .xml file of Facial Landmark Detection model.
--hp | Mandatory	 | Path to .xml file of Head Pose Estimation model.
--ge | Mandatory	 | Path to .xml file of Gaze Estimation model.
--i  | Mandatory	 | Path to video file or enter cam for webcam
--it | Mandatory	 | Provide the source of video frames.
--deb| Optional   | To debug each model's output visually, type the model name with comma seperated after --debug
--ld | Optional	 | linker libraries if can be identified
--d  | Optional	 | Provide the target device: CPU (default) / GPU / MYRIAD / FPGA (MULTI: required for chaining devices & HETERO:FPGA, CPU for FPGA usage)
--h  | Optional   | Help/descriptor for CLI arguments
+CLI  |Type               |Description
+Args |-------------------| ---------------------------------------------------|
+-fd  | Mandatory	 | Path to .xml file of Face Detection model.
+-fl  | Mandatory	 | Path to .xml file of Facial Landmark Detection model.
+-hp  | Mandatory	 | Path to .xml file of Head Pose Estimation model.
+-ge  | Mandatory	 | Path to .xml file of Gaze Estimation model.
+-i   | Mandatory	 | Path to video file or enter cam for webcam
+-d   | Optional	  	 | Provide the target device: CPU (default) / GPU / MYRIAD (ie NCS2) / FPGA
+-h   | Optional   	 | Help/descriptor for CLI arguments
 
 The optional features as per the requirements of the project, allow for visual debuging of each output from each model which you normaly would not see. This is usefull as there are clear issues with model control dominance over the mouse cursor in the final output, which will be discussed in the Edge Case section.
 
@@ -102,10 +100,10 @@ Target device is not so mucha feature as a requirement - it is important to be a
 
 Help file as required for the project. 
 
-[Directory-Structure](bin/tree.png)
+[Directory-Structure](bin/Directory_Structure.png)
 
 <h2>JashaBCPC</h2>
-- <b>README.md</b> File that you are reading right now. 
+- <b>README.md</b> This file 
 - <b>.gitignore</b> listing of files that should not be uploaded to GitHub 
 - <b>requirements.txt</b> Key project dependencies in this file (will be run as part of setup if required)
 - <b>bin</b> folder contains the media files
@@ -117,13 +115,9 @@ Help file as required for the project.
     + [gaze_estimation.py](src/gaze_estimation.py) : Gaze Estimation related inference code
     + [head_pose_estimation.py](src/head_pose_estimation.py) : Head Pose Estimation related inference code
     + [input_feeder.py](src/input_feeder.py) : input selection related code
-    + [main.py](src/main.py): Driver python file(s)
-    + [main8.py](src/main8.py): INT8
-    + [main16.py](src/main.py): FP16
-    + [main32.py](src/main8.py):FP32
-    + [model.py](src/model.py) : started code for any pre-trained model
+    + [main.py](src/main.py): Coordinating python file
     + [mouse_controller.py](/src/mouse_controller.py) : Mouse Control related utilities.
-    + [profiling.py](src/profiling.py) : To check performance of script line by line
+
     
 - <b>party_starter8.sh</b> one shot execution script that covers all the prerequisites of the project - INT8
 - <b>party_starter16.sh</b> one shot execution script that covers all the prerequisites of the project - FP16
@@ -152,9 +146,18 @@ Benchmark results of the model.
 
 1. Benchmak App Results (multiple devices at all precisions)
 	
-Single Hardware used - Core i5 6500te, Intel® Xeon® Processor E3-1268L v5, intel-hd-530 IGPU, Intel Neural Compute Stick 2 (NCS), Intel mustang-v100-mx8 FPG/HDDL-R
-MULTI Hardware configs - MULTI:CPU Core i5 6500te, GPU hd-530 & MULTI:CPU i5 6500te, HDDL Intel mustang-v100-mx8
+Single Hardware used from the DevCloud: 
+Core i5 6500te, 
+Intel® Xeon® Processor E3-1268L v5, 
+Intel-hd-530 IGPU, Intel Neural Compute Stick 2 (NCS), 
+Intel mustang-v100-mx8 FPG/HDDL-R
 
+MULTI Hardware configs used (DevCloud)
+
+MULTI:CPU Core i5 6500te, GPU hd-530 
+MULTI:CPU i5 6500te, HDDL Intel mustang-v100-mx8
+
+s1 Model Results 	
 	Facial Recognition
  	Gaze Estimation
 	Head pose estimation
@@ -202,7 +205,6 @@ GPU processed more frames per second compared to any other hardware and speciall
 The biggest standout that I couldn't master was to be able to center or fix the position of the output video and simultaneously have pyautogui center the mouse cursor. Many runs of the model the video randomly appears and if the mouse is too close to the screen edge it falls over.
 
 ### Async Inference
-I used the start_async method because the ouput of the App runs multiple modules or models, as we know synchronous operation will prevent other processing from occurring until its process/inference request is returned. While there is actually faster data transfer/throughput using sync, async takes advantage of parallel processing which in computational terms makes it more efficient and able to handle multiple requests at once. 
 
 ### Edge Cases
 1. Moving Mouse Pointer out of the maximum window width - Pyautogui has a failsafe which kills the App if the mouse moves beyond the screen dimensions. This is presumably so that people hacking a system can't override manual mouse control via a backdoor. In this instance it's possible to turn this feature off, though not advised and the problem is fixed.
