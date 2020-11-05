@@ -1,0 +1,4 @@
+Load Time: 0.3481175899505615
+Inference Time :68.4
+total frames processed59
+fps: 0.8625730994152047
