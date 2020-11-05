@@ -9,7 +9,9 @@ Sample usage:
 '''
 import cv2
 
+
 class InputFeeder:
+    
     def __init__(self, input_type, input_file=None):
         '''
         input_type: str, The type of input. Can be 'video' for video file, 'image' for image file,
@@ -21,6 +23,7 @@ class InputFeeder:
             self.input_file=input_file
     
     def load_data(self):
+        
         if self.input_type=='video':
             self.cap=cv2.VideoCapture(self.input_file)
         elif self.input_type=='cam':

@@ -34,27 +34,23 @@ class HeadPoseEstimationModel:
         '''
         self.plugin = IECore()
         self.network = self.plugin.read_network(model=self.model_structure, weights=self.model_weights)
+        
         supported_layers = self.plugin.query_network(network=self.network, device_name=self.device)
-        unsupported_layers = [l for l in self.network.layers.keys() if l not in supported_layers]
-        
-        
-        if len(unsupported_layers)!=0 and self.device=='CPU':
+        unsupported_layers = [l for l in self.network.layers.keys() if l not in supported_layers]        
+        if len(unsupported_layers) > 0 and self.device=='CPU':
             print("unsupported layers found:{}".format(unsupported_layers))
             if not self.extensions==None:
-                print("Adding cpu_extension")
+                print("Attempting to apply known cpu_extension(s)")
                 self.plugin.add_extension(self.extensions, self.device)
                 supported_layers = self.plugin.query_network(network = self.network, device_name=self.device)
                 unsupported_layers = [l for l in self.network.layers.keys() if l not in supported_layers]
-                if len(unsupported_layers)!=0:
-                    print("After adding the extension still unsupported layers found")
-                    exit(1)
-                print("After adding the extension the issue is resolved")
-            else:
-                print("Give the path of cpu extension")
-                exit(1)
+                if len(unsupported_layers) > 0:
+                    print("Unable to find correct layer extensions, please specify correct path")
+                else:
+                   print("Check for  viable extensions for these unsupported layers =>" + str(unsupported_layers))
+                   exit(1)
                 
         self.exec_net = self.plugin.load_network(network=self.network, device_name=self.device,num_requests=1)
-        
         self.input_name = next(iter(self.network.inputs))
         self.input_shape = self.network.inputs[self.input_name].shape
         self.output_names = [i for i in self.network.outputs.keys()]
@@ -78,10 +74,11 @@ class HeadPoseEstimationModel:
         Before feeding the data into the model for inference,
         you might have to preprocess it. This function is where you can do that.
         '''
-        image_resized = cv2.resize(image, (self.input_shape[3], self.input_shape[2]))
-        img_processed = np.transpose(np.expand_dims(image_resized,axis=0), (0,3,1,2))
+        img_resized = cv2.resize(image, (self.input_shape[3], self.input_shape[2]))
+        img_processed = np.transpose(np.expand_dims(img_resized,axis=0), (0,3,1,2))
         return img_processed
-            
+        image = image.astype(np.float32)
+
 
     def preprocess_output(self, outputs):
         '''
